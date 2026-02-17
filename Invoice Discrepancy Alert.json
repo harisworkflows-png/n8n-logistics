@@ -1,0 +1,958 @@
+{
+  "name": "Invoice Discrepancy Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "📄 Invoice Upload & Processing",
+        "formDescription": "Upload freight invoice PDF for automatic data extraction",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Invoice PDF",
+              "fieldType": "file"
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email"
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Process Invoice"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        208,
+        0
+      ],
+      "id": "5dd445ef-6d51-4c7b-9c7d-0bafcb006d27",
+      "name": "Upload Invoice PDF",
+      "webhookId": "336b26b7-493a-4638-bdb3-e36572fb8bf3"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "Invoice_PDF",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        432,
+        -96
+      ],
+      "id": "a390899c-a737-47d9-94e4-9ab944fe6ab5",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract all data from this freight invoice and return it as structured JSON.\n\nInvoice Text:{{ $json.text }}\n\nExtract these fields:\n- invoice_number\n- invoice_date\n- due_date\n- carrier (company name)\n- bill_to (company name)\n- ship_to (company/address)\n- tracking_number\n- shipment_date\n- delivery_date\n- freight_charges (number only)\n- fuel_surcharge (number only)\n- handling_fee (number only)\n- insurance (number only)\n- subtotal (number only)\n- tax (number only)\n- total_due (number only)\n\nReturn ONLY the JSON object, no markdown formatting.",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        656,
+        -96
+      ],
+      "id": "b0769a49-eaf7-4fe3-bc20-0ad9745b643c",
+      "name": "Parse Invoice Data"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"invoice_number\": \"SL-INV-00921\",\n  \"invoice_date\": \"Jan 20, 2026\",\n  \"due_date\": \"Jan 27, 2026\",\n  \"carrier\": \"SwiftLine Logistics LLC\",\n  \"bill_to\": \"Atlas Retail Corp\",\n  \"ship_to\": \"Atlas Retail Distribution Center\",\n  \"tracking_number\": \"SLX-45899231\",\n  \"shipment_date\": \"Jan 18, 2026\",\n  \"delivery_date\": \"Jan 19, 2026\",\n  \"freight_charges\": 1150.00,\n  \"fuel_surcharge\": 175.00,\n  \"handling_fee\": 85.00,\n  \"insurance\": 60.00,\n  \"subtotal\": 1470.00,\n  \"tax\": 0.00,\n  \"total_due\": 1470.00\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        192
+      ],
+      "id": "e75052a5-bc32-4316-a625-c1c4b97819ef",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        592,
+        192
+      ],
+      "id": "10c6680a-5ba4-4455-b81a-1276b8678f9e",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "1jd85pfugL3VSvVZ",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = $input.first().json.output;\n\nreturn [{\n  json: {\n    ...parsed,\n    processing_date: new Date().toISOString().slice(0, 19).replace('T', ' '),\n    ocr_status: 'success',\n    pdf_filename: 'invoice.pdf'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        -96
+      ],
+      "id": "50dfbf33-2da7-465a-98b4-c762192ac35a",
+      "name": "Flatten Data"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1WWb-r6pmYeQ6kNyPQCUkFuzQKKnm92bzGp-h7UMjqxc",
+          "mode": "list",
+          "cachedResultName": "Invoice Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WWb-r6pmYeQ6kNyPQCUkFuzQKKnm92bzGp-h7UMjqxc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": " Invoice_Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WWb-r6pmYeQ6kNyPQCUkFuzQKKnm92bzGp-h7UMjqxc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "invoice_number",
+              "displayName": "invoice_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_date",
+              "displayName": "invoice_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "due_date",
+              "displayName": "due_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "carrier",
+              "displayName": "carrier",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tracking_number",
+              "displayName": "tracking_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "bill_to",
+              "displayName": "bill_to",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ship_to",
+              "displayName": "ship_to",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "freight_charges",
+              "displayName": "freight_charges",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fuel_surcharge",
+              "displayName": "fuel_surcharge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "handling_fee",
+              "displayName": "handling_fee",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "insurance",
+              "displayName": "insurance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subtotal",
+              "displayName": "subtotal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tax",
+              "displayName": "tax",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "total_due",
+              "displayName": "total_due",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "processing_date",
+              "displayName": "processing_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ocr_status",
+              "displayName": "ocr_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pdf_filename",
+              "displayName": "pdf_filename",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "shipment_date",
+              "displayName": "shipment_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivery_date",
+              "displayName": "delivery_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1232,
+        -96
+      ],
+      "id": "5c9e225d-cfc9-4e77-aea0-7936d77b6aa8",
+      "name": "Save to Invoice_Log",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ywW1O9JaJ1O5Pdt4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1WWb-r6pmYeQ6kNyPQCUkFuzQKKnm92bzGp-h7UMjqxc",
+          "mode": "list",
+          "cachedResultName": "Invoice Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WWb-r6pmYeQ6kNyPQCUkFuzQKKnm92bzGp-h7UMjqxc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1159204299,
+          "mode": "list",
+          "cachedResultName": "Expected_Quotes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WWb-r6pmYeQ6kNyPQCUkFuzQKKnm92bzGp-h7UMjqxc/edit#gid=1159204299"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "tracking_number",
+              "lookupValue": "={{ $('Flatten Data').first().json.tracking_number }}"
+            }
+          ]
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "detectAutomatically"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1456,
+        -96
+      ],
+      "id": "88fad109-5ce1-4cd1-be9e-b2ffb1a61839",
+      "name": "Lookup Quote",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ywW1O9JaJ1O5Pdt4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f6692a6a-b3bb-439b-bbe5-5012d1662a78",
+              "leftValue": "={{ Object.keys($json).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1680,
+        -96
+      ],
+      "id": "eff427a7-edd5-48c7-8bf9-16cf5c649ad4",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const invoice = $('Flatten Data').first().json;\nconst quote = $input.first().json;\n\nconst quotedTotal = parseFloat(quote.quoted_total) || 0;\nconst invoicedTotal = parseFloat(invoice.total_due) || 0;\n\nconst varianceAmount = invoicedTotal - quotedTotal;\nconst variancePercent = quotedTotal > 0 ? ((varianceAmount / quotedTotal) * 100).toFixed(2) : 0;\n\n// Determine discrepancy type\nlet discrepancyType = 'none';\nlet notes = '';\n\nif (Math.abs(varianceAmount) < 1) {\n  discrepancyType = 'match';\n  notes = 'Invoice matches quote';\n} else if (varianceAmount > 0) {\n  discrepancyType = 'overcharge';\n  notes = `Invoice is $${Math.abs(varianceAmount).toFixed(2)} higher than quote`;\n  \n  // Detailed breakdown\n  const quotedFreight = parseFloat(quote.freight_base) || 0;\n  const quotedFuel = parseFloat(quote.fuel_quoted) || 0;\n  \n  if (invoice.freight_charges > quotedFreight) {\n    notes += ` | Freight: +$${(invoice.freight_charges - quotedFreight).toFixed(2)}`;\n  }\n  if (invoice.fuel_surcharge > quotedFuel) {\n    notes += ` | Fuel: +$${(invoice.fuel_surcharge - quotedFuel).toFixed(2)}`;\n  }\n} else {\n  discrepancyType = 'undercharge';\n  notes = `Invoice is $${Math.abs(varianceAmount).toFixed(2)} lower than quote`;\n}\n\nreturn [{\n  json: {\n    timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),\n    invoice_number: invoice.invoice_number,\n    tracking_number: invoice.tracking_number,\n    quoted_total: quotedTotal,\n    invoiced_total: invoicedTotal,\n    variance_amount: parseFloat(varianceAmount.toFixed(2)),\n    variance_percent: parseFloat(variancePercent),\n    discrepancy_type: discrepancyType,\n    notes: notes\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        -96
+      ],
+      "id": "fb6a067b-7f01-4291-9f78-8265bea05ace",
+      "name": "Calculate Variance"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "06ea9a8d-0bfd-41d7-b51a-d6387078dd4c",
+              "leftValue": "={{ $json.discrepancy_type }}",
+              "rightValue": "match",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2128,
+        -96
+      ],
+      "id": "acdea998-358e-4d29-89ab-3017f865131c",
+      "name": "Check Discrepancy"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1WWb-r6pmYeQ6kNyPQCUkFuzQKKnm92bzGp-h7UMjqxc",
+          "mode": "list",
+          "cachedResultName": "Invoice Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WWb-r6pmYeQ6kNyPQCUkFuzQKKnm92bzGp-h7UMjqxc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 831102763,
+          "mode": "list",
+          "cachedResultName": "Discrepancies",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WWb-r6pmYeQ6kNyPQCUkFuzQKKnm92bzGp-h7UMjqxc/edit#gid=831102763"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_number",
+              "displayName": "invoice_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tracking_number",
+              "displayName": "tracking_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "quoted_total",
+              "displayName": "quoted_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoiced_total",
+              "displayName": "invoiced_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "variance_amount",
+              "displayName": "variance_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "variance_percent",
+              "displayName": "variance_percent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "discrepancy_type",
+              "displayName": "discrepancy_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2352,
+        -192
+      ],
+      "id": "a20d1812-4b7e-4b22-8539-50720a9576f7",
+      "name": "Log to Discrepancies",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ywW1O9JaJ1O5Pdt4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "harithabdool@gmail.com",
+        "subject": "=⚠️ Invoice Discrepancy: {{ $('Calculate Variance').first().json.invoice_number }}",
+        "message": "=<div style=\"font-family: Arial; max-width: 600px;\">      <div style=\"background: #ea4335; color: white; padding: 20px; text-align: center;\">     <h1 style=\"margin: 0;\">⚠️ INVOICE DISCREPANCY DETECTED</h1>   </div>      <div style=\"padding: 20px; border: 1px solid #e0e0e0;\">          <p>A pricing variance has been detected:</p>          <table style=\"width: 100%; border-collapse: collapse; margin: 20px 0;\">       <tr style=\"background: #f8f9fa;\">         <td style=\"padding: 10px; border: 1px solid #e0e0e0;\"><strong>Invoice Number:</strong></td>         <td style=\"padding: 10px; border: 1px solid #e0e0e0;\">{{ $('Calculate Variance').first().json.invoice_number }}</td>       </tr>       <tr>         <td style=\"padding: 10px; border: 1px solid #e0e0e0;\"><strong>Tracking Number:</strong></td>         <td style=\"padding: 10px; border: 1px solid #e0e0e0;\">{{ $('Calculate Variance').first().json.tracking_number }}</td>       </tr>       <tr style=\"background: #f8f9fa;\">         <td style=\"padding: 10px; border: 1px solid #e0e0e0;\"><strong>Quoted Amount:</strong></td>         <td style=\"padding: 10px; border: 1px solid #e0e0e0;\">${{ $('Calculate Variance').first().json.quoted_total }}</td>       </tr>       <tr>         <td style=\"padding: 10px; border: 1px solid #e0e0e0;\"><strong>Invoiced Amount:</strong></td>         <td style=\"padding: 10px; border: 1px solid #e0e0e0; font-weight: bold; color: #ea4335;\">${{ $('Calculate Variance').first().json.invoiced_total }}</td>       </tr>       <tr style=\"background: #fce8e6;\">         <td style=\"padding: 10px; border: 1px solid #e0e0e0;\"><strong>Variance:</strong></td>         <td style=\"padding: 10px; border: 1px solid #e0e0e0; font-weight: bold; color: #ea4335;\">           ${{ $('Calculate Variance').first().json.variance_amount }} ({{ $('Calculate Variance').first().json.variance_percent }}%)         </td>       </tr>     </table>          <div style=\"background: #fff3cd; padding: 15px; border-left: 4px solid #fbbc04; margin: 20px 0;\">       <p style=\"margin: 0;\"><strong>Details:</strong></p>       <p style=\"margin: 5px 0;\">{{ $('Calculate Variance').first().json.notes }}</p>     </div>          <p><strong>Action Required:</strong> Review invoice and contact carrier if overcharged.</p>        </div>    </div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2576,
+        -192
+      ],
+      "id": "420d0a68-77a7-45d0-8f6e-56160595866f",
+      "name": "Send Discrepancy Alert",
+      "webhookId": "419a2892-c576-49d1-88d5-b7655bc79fb2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "zhLC6Pv5jEpy3Z3I",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),\n    invoice_number: $('Flatten Data').first().json.invoice_number,\n    ocr_method: 'groq_structured',\n    ocr_status: 'success',\n    data_extracted: 'yes',\n    alert_sent: 'no',\n    errors: 'none'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2352,
+        0
+      ],
+      "id": "e3552374-1c31-4b2a-b070-91959737a4ea",
+      "name": "Format Log Success"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1WWb-r6pmYeQ6kNyPQCUkFuzQKKnm92bzGp-h7UMjqxc",
+          "mode": "list",
+          "cachedResultName": "Invoice Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WWb-r6pmYeQ6kNyPQCUkFuzQKKnm92bzGp-h7UMjqxc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1252241609,
+          "mode": "list",
+          "cachedResultName": " Processing_Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WWb-r6pmYeQ6kNyPQCUkFuzQKKnm92bzGp-h7UMjqxc/edit#gid=1252241609"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_number",
+              "displayName": "invoice_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ocr_method",
+              "displayName": "ocr_method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ocr_status",
+              "displayName": "ocr_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "data_extracted",
+              "displayName": "data_extracted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "alert_sent",
+              "displayName": "alert_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "errors",
+              "displayName": "errors",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2576,
+        0
+      ],
+      "id": "8ab51ddb-d011-4987-a3a1-f4f10387caff",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ywW1O9JaJ1O5Pdt4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 15,
+              "unit": "minutes"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "includeSpamTrash": true,
+          "q": "has: attachment",
+          "readStatus": "unread"
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -16,
+        -192
+      ],
+      "id": "aa13af9b-25d1-4dde-8330-f1f579fccc9c",
+      "name": "When Invoice Email Arrives",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "zhLC6Pv5jEpy3Z3I",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const attachments = $json.attachments || [];\n\n// Find PDF attachment\nconst pdf = attachments.find(att => \n  att.mimeType === 'application/pdf' || \n  att.filename.toLowerCase().endsWith('.pdf')\n);\n\nif (!pdf) {\n  throw new Error('No PDF found in email');\n}\n\nreturn [{\n  json: {\n    source: 'email',\n    filename: pdf.filename\n  },\n  binary: {\n    'invoice-pdf': {\n      data: pdf.data,\n      mimeType: 'application/pdf',\n      fileName: pdf.filename\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        -192
+      ],
+      "id": "5edf2d9f-4123-4e27-8528-f3346e39c018",
+      "name": "Get PDF from Email1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Upload Invoice PDF": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Parse Invoice Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Parse Invoice Data",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Parse Invoice Data",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Invoice Data": {
+      "main": [
+        [
+          {
+            "node": "Flatten Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flatten Data": {
+      "main": [
+        [
+          {
+            "node": "Save to Invoice_Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Invoice_Log": {
+      "main": [
+        [
+          {
+            "node": "Lookup Quote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Quote": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Calculate Variance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Variance": {
+      "main": [
+        [
+          {
+            "node": "Check Discrepancy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Discrepancy": {
+      "main": [
+        [
+          {
+            "node": "Log to Discrepancies",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Discrepancies": {
+      "main": [
+        [
+          {
+            "node": "Send Discrepancy Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Log Success": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Invoice Email Arrives": {
+      "main": [
+        [
+          {
+            "node": "Get PDF from Email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get PDF from Email1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "b0fa0806-30ff-46c7-9230-d1fe4c2fd6ed",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a155c7c552c4f29bda0f4055fdd6aa6bf5bf6ab76b71de92b6b82f98edd7a5c0"
+  },
+  "id": "1w7jM2xOz8iwr5aI",
+  "tags": []
+}
